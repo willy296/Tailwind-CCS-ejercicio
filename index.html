@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de estudiantes</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+
+<body class="min-h-screen bg-slate-100 p-4 sm:p-6">
+    <main class="mx-auto max-w-4xl space-y-6">
+        <h1 class="text-3xl font-bold text-slate-800">Sistema de registro de estudiantes</h1>
+
+        <!-- FORMULARIO -->
+        <form id="formulario" novalidate class="space-y-4 rounded-xl bg-white p-6 shadow">
+            <h2 class="text-xl font-bold">Nuevo estudiante</h2>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <input id="nombre" type="text" placeholder="Nombre completo" class="w-full rounded border p-3">
+                <input id="matricula" type="text" placeholder="Matrícula" class="w-full rounded border p-3">
+                <select id="carrera" class="w-full rounded border bg-white p-3">
+                    <option value="">Selecciona una carrera</option>
+                    <option value="Ingeniería en Sistemas">Ingeniería en Sistemas</option>
+                    <option value="Ingeniería Industrial">Ingeniería Industrial</option>
+                    <option value="Ingeniería Civil">Ingeniería Civil</option>
+                    <option value="Ingeniería Mecatrónica">Ingeniería Mecatrónica</option>
+                    <option value="Arquitectura">Arquitectura</option>
+                    <option value="Contaduría">Contaduría</option>
+                    <option value="Administración">Administración</option>
+                    <option value="Derecho">Derecho</option>
+                    <option value="Psicología">Psicología</option>
+                    <option value="Medicina">Medicina</option>
+                    <option value="Enfermería">Enfermería</option>
+                    <option value="Diseño Gráfico">Diseño Gráfico</option>
+                </select>
+            </div>
+            <button type="submit" class="w-full rounded bg-blue-600 p-3 text-white hover:bg-blue-700 sm:w-auto sm:px-8">Registrar</button>
+            <p id="mensaje" role="status" class="text-sm"></p>
+        </form>
+
+        <!-- LISTADO -->
+        <section class="rounded-xl bg-white p-6 shadow">
+            <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 class="text-xl font-bold">Estudiantes registrados:
+                    <span id="total" class="text-blue-600">0</span>
+                </h2>
+                <input id="buscar" type="search" placeholder="Buscar por nombre o matrícula..."
+                    class="w-full rounded border p-3 sm:max-w-xs">
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[480px] text-left text-sm">
+                    <thead class="bg-slate-100 text-slate-700">
+                        <tr>
+                            <th class="p-3">Nombre</th>
+                            <th class="p-3">Matrícula</th>
+                            <th class="p-3">Carrera</th>
+                            <th class="p-3 text-right">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla"></tbody>
+                </table>
+            </div>
+            <p id="vacio" class="hidden p-6 text-center text-slate-500"></p>
+        </section>
+    </main>
+
+    <script>
+        // Los registros viven solo en memoria
+        let estudiantes = [];
+
+        const formulario = document.getElementById("formulario");
+        const mensaje = document.getElementById("mensaje");
+        const tabla = document.getElementById("tabla");
+        const total = document.getElementById("total");
+        const vacio = document.getElementById("vacio");
+        const buscar = document.getElementById("buscar");
+
+        function mostrarMensaje(texto, esError) {
+            mensaje.textContent = texto;
+            mensaje.className = "text-sm " + (esError ? "text-red-600" : "text-green-600");
+        }
+
+        formulario.addEventListener("submit", function (evento) {
+            evento.preventDefault();
+            const nombre = document.getElementById("nombre").value.trim();
+            const matricula = document.getElementById("matricula").value.trim();
+            const carrera = document.getElementById("carrera").value.trim();
+
+            // Campos obligatorios
+            if (!nombre || !matricula || !carrera) {
+                mostrarMensaje("Completa todos los campos.", true);
+                return;
+            }
+
+            // Matrícula duplicada (sin distinguir mayúsculas)
+            const duplicada = estudiantes.some(e => e.matricula.toLowerCase() === matricula.toLowerCase());
+            if (duplicada) {
+                mostrarMensaje("La matrícula " + matricula + " ya está registrada.", true);
+                return;
+            }
+
+            estudiantes.push({ nombre, matricula, carrera });
+            formulario.reset();
+            document.getElementById("nombre").focus();
+            mostrarMensaje("Estudiante registrado: " + nombre, false);
+            mostrarEstudiantes();
+        });
+
+        function eliminar(matricula) {
+            estudiantes = estudiantes.filter(e => e.matricula !== matricula);
+            mostrarMensaje("Registro eliminado.", false);
+            mostrarEstudiantes();
+        }
+
+        function mostrarEstudiantes() {
+            const texto = buscar.value.trim().toLowerCase();
+            tabla.replaceChildren();
+
+            // Buscar por nombre o matrícula
+            const resultado = estudiantes.filter(e =>
+                e.nombre.toLowerCase().includes(texto) ||
+                e.matricula.toLowerCase().includes(texto)
+            );
+
+            resultado.forEach(e => {
+                const fila = document.createElement("tr");
+                fila.className = "border-t";
+
+                [e.nombre, e.matricula, e.carrera].forEach(dato => {
+                    const celda = document.createElement("td");
+                    celda.className = "p-3";
+                    celda.textContent = dato;
+                    fila.appendChild(celda);
+                });
+
+                const celdaAccion = document.createElement("td");
+                celdaAccion.className = "p-3 text-right";
+                const boton = document.createElement("button");
+                boton.className = "rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700";
+                boton.textContent = "Eliminar";
+                boton.setAttribute("aria-label", "Eliminar a " + e.nombre);
+                boton.addEventListener("click", () => eliminar(e.matricula));
+                celdaAccion.appendChild(boton);
+                fila.appendChild(celdaAccion);
+
+                tabla.appendChild(fila);
+            });
+
+            // Total de registros
+            total.textContent = estudiantes.length;
+
+            // Mensaje cuando no hay nada que mostrar
+            if (resultado.length === 0) {
+                vacio.classList.remove("hidden");
+                vacio.textContent = estudiantes.length === 0
+                    ? "Aún no hay estudiantes registrados."
+                    : "Ningún estudiante coincide con la búsqueda.";
+            } else {
+                vacio.classList.add("hidden");
+            }
+        }
+
+        buscar.addEventListener("input", mostrarEstudiantes);
+
+        // Carga inicial
+        mostrarEstudiantes();
+    </script>
+</body>
+
+</html>
